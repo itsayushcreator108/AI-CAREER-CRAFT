@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    <!-- Futuristic Gradient -->
+    <linearGradient id="futuristic" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f2fe"/>
+      <stop offset="50%" stop-color="#7F00FF"/>
+      <stop offset="100%" stop-color="#38f9d7"/>
+    </linearGradient>
+
+    <!-- Glow Effect -->
+    <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <g filter="url(#neon-glow)">
+    <!-- Outer Hexagon -->
+    <polygon points="200,40 340,120 340,280 200,360 60,280 60,120"
+             fill="none" stroke="url(#futuristic)" stroke-width="14"/>
+
+    <!-- Inner Hexagon -->
+    <polygon points="200,100 290,150 290,250 200,300 110,250 110,150"
+             fill="none" stroke="url(#futuristic)" stroke-width="8"/>
+
+    <!-- Futuristic Core Circle -->
+    <circle cx="200" cy="200" r="45" fill="url(#futuristic)" />
+
+    <!-- Connection Nodes -->
+    <circle cx="200" cy="40" r="12" fill="url(#futuristic)" />
+    <circle cx="340" cy="120" r="12" fill="url(#futuristic)" />
+    <circle cx="340" cy="280" r="12" fill="url(#futuristic)" />
+    <circle cx="200" cy="360" r="12" fill="url(#futuristic)" />
+    <circle cx="60" cy="280" r="12" fill="url(#futuristic)" />
+    <circle cx="60" cy="120" r="12" fill="url(#futuristic)" />
+  </g>
+</svg>
