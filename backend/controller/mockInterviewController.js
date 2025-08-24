@@ -4,8 +4,7 @@ import OpenAI from "openai";
 
 // Enhanced Gemini AI configuration
 const ai = new OpenAI({
-  apiKey: process.env.GEMINI_API_KEY || "AIzaSyBNLVWoqfnsLHV24EsPym5l2C1W_luytMc",
-
+  apiKey: process.env.GEMINI_API_KEY || "AIzaSyCIrddw1SvgoRZSHgJRO_dn-azgQqklcqs",
   baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
 });
 
