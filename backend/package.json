@@ -1,0 +1,42 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "server": "nodemon server.js",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@clerk/clerk-sdk-node": "^5.1.6",
+    "@clerk/express": "^1.7.24",
+    "@google/genai": "^1.15.0",
+    "@google/generative-ai": "^0.24.1",
+    "@neondatabase/serverless": "^1.0.1",
+    "@pdf-lib/fontkit": "^1.1.1",
+    "axios": "^1.11.0",
+    "buffer": "^6.0.3",
+    "cloudinary": "^2.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.0.1",
+    "fs": "^0.0.1-security",
+    "mammoth": "^1.10.0",
+    "mongodb": "^6.18.0",
+    "mongoose": "^8.17.2",
+    "multer": "^2.0.2",
+    "openai": "^5.15.0",
+    "path": "^0.12.7",
+    "pdf-lib": "^1.17.1",
+    "pdf-parse": "^1.1.1",
+    "rate-limit": "^0.1.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
