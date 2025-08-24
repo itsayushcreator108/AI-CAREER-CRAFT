@@ -1,0 +1,1557 @@
+import React, { useState, useRef, useEffect } from "react";
+
+const SimpleWebcamToggle = ({ width = "100%", height = "100%", onVideoStream, isAnalyzing }) => {
+  const [isOn, setIsOn] = useState(false);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const analysisIntervalRef = useRef(null);
+
+  const toggleCamera = async () => {
+    if (isOn) {
+      if (videoRef.current && videoRef.current.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
+        videoRef.current.srcObject = null;
+      }
+      if (analysisIntervalRef.current) {
+        clearInterval(analysisIntervalRef.current);
+      }
+      setIsOn(false);
+      if (onVideoStream) onVideoStream(null);
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { width: 1280, height: 720, facingMode: 'user' },
+          audio: true
+        });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.onloadedmetadata = () => {
+            if (onVideoStream) onVideoStream(videoRef.current);
+            startVideoAnalysis();
+          };
+        }
+        setIsOn(true);
+      } catch (error) {
+        console.error("Camera access error:", error);
+        alert("Camera access denied. Please allow permission for video interview.");
+      }
+    }
+  };
+
+  const startVideoAnalysis = () => {
+    if (analysisIntervalRef.current) clearInterval(analysisIntervalRef.current);
+    
+    analysisIntervalRef.current = setInterval(() => {
+      if (videoRef.current && canvasRef.current && isAnalyzing) {
+        captureFrame();
+      }
+    }, 2000); // Analyze every 2 seconds
+  };
+
+  const captureFrame = () => {
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    
+    if (canvas && video && video.videoWidth > 0) {
+      const ctx = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      // Convert to base64 for analysis
+      const imageData = canvas.toDataURL('image/jpeg', 0.8);
+      if (onVideoStream) {
+        onVideoStream(videoRef.current, imageData);
+      }
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (videoRef.current && videoRef.current.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
+      }
+      if (analysisIntervalRef.current) {
+        clearInterval(analysisIntervalRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <div
+      onClick={toggleCamera}
+      style={{
+        width: width,
+        height: height,
+        cursor: "pointer",
+        position: "relative",
+        backgroundColor: "#000",
+        borderRadius: "24px",
+        overflow: "hidden",
+        minWidth: 0,
+        minHeight: 0,
+        maxWidth: "100%",
+        maxHeight: "100%",
+        flex: "none",
+      }}
+    >
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          borderRadius: "inherit",
+          transform: "scaleX(-1)", // Mirror effect
+        }}
+      />
+      <canvas
+        ref={canvasRef}
+        style={{ display: "none" }}
+      />
+      {!isOn && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "rgba(0,0,0,0.8)",
+            color: "#fff",
+            fontSize: "16px",
+            textAlign: "center",
+            borderRadius: "inherit",
+          }}
+        >
+          <div style={{ fontSize: "48px", marginBottom: "12px" }}>📹</div>
+          <div>Click to start camera</div>
+        </div>
+      )}
+      <div
+        style={{
+          position: "absolute",
+          top: "12px",
+          right: "12px",
+          width: "12px",
+          height: "12px",
+          borderRadius: "50%",
+          backgroundColor: isOn ? "#22c55e" : "#64748b",
+          zIndex: 10,
+        }}
+      />
+      {isAnalyzing && isOn && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "12px",
+            left: "12px",
+            backgroundColor: "rgba(59, 130, 246, 0.9)",
+            color: "white",
+            padding: "4px 8px",
+            borderRadius: "12px",
+            fontSize: "12px",
+            display: "flex",
+            alignItems: "center",
+            gap: "4px"
+          }}
+        >
+          <div style={{
+            width: "6px",
+            height: "6px",
+            backgroundColor: "#10b981",
+            borderRadius: "50%",
+            animation: "pulse 2s infinite"
+          }} />
+          AI Analyzing
+        </div>
+      )}
+    </div>
+  );
+};
+
+const MockInterview = () => {
+  const [messages, setMessages] = useState([]);
+  const [inputText, setInputText] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [selectedInterview, setSelectedInterview] = useState(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [conversationHistory, setConversationHistory] = useState([]);
+
+  // Video Analysis States
+  const [isVideoAnalyzing, setIsVideoAnalyzing] = useState(false);
+  const [videoAnalysisResults, setVideoAnalysisResults] = useState([]);
+  const [currentVideoStream, setCurrentVideoStream] = useState(null);
+  const [facialExpressionData, setFacialExpressionData] = useState({});
+  const [bodyLanguageScore, setBodyLanguageScore] = useState(0);
+  const [confidenceLevel, setConfidenceLevel] = useState(0);
+  const [eyeContactScore, setEyeContactScore] = useState(0);
+  const [speechAnalysis, setSpeechAnalysis] = useState({});
+
+  // Enhanced refs for better voice control
+  const recognitionRef = useRef(null);
+  const synthesisRef = useRef(null);
+  const messagesEndRef = useRef(null);
+  const voiceMessagesEndRef = useRef(null);
+  const silenceTimerRef = useRef(null);
+  const videoAnalysisRef = useRef(null);
+  const [silenceDetected, setSilenceDetected] = useState(false);
+
+  // Auto-scroll function
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+    }
+    if (voiceMessagesEndRef.current) {
+      voiceMessagesEndRef.current.scrollTop = voiceMessagesEndRef.current.scrollHeight;
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isTyping]);
+
+  // Silence timer functions
+  const clearSilenceTimer = () => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    setSilenceDetected(false);
+  };
+
+  const startSilenceTimer = () => {
+    clearSilenceTimer();
+    silenceTimerRef.current = setTimeout(() => {
+      setSilenceDetected(true);
+      if (isRecording && transcript.trim()) {
+        handleVoiceRecord(); // Auto-stop and process
+      }
+    }, 3000); // 3 seconds silence detection
+  };
+
+  // Video Analysis Functions
+  const analyzeVideoFrame = async (imageData) => {
+    try {
+      const response = await fetch("http://localhost:4000/api/mockinterview/video/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageData: imageData,
+          timestamp: Date.now(),
+          analysisType: "comprehensive"
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const analysisResult = await response.json();
+      
+      // Update facial expression data
+      if (analysisResult.facialExpressions) {
+        setFacialExpressionData(analysisResult.facialExpressions);
+      }
+      
+      // Update body language score
+      if (analysisResult.bodyLanguageScore !== undefined) {
+        setBodyLanguageScore(analysisResult.bodyLanguageScore);
+      }
+      
+      // Update confidence level
+      if (analysisResult.confidenceLevel !== undefined) {
+        setConfidenceLevel(analysisResult.confidenceLevel);
+      }
+      
+      // Update eye contact score
+      if (analysisResult.eyeContactScore !== undefined) {
+        setEyeContactScore(analysisResult.eyeContactScore);
+      }
+      
+      // Store analysis results
+      setVideoAnalysisResults(prev => [...prev.slice(-9), analysisResult]);
+      
+      return analysisResult;
+    } catch (error) {
+      console.error("Video analysis error:", error);
+      return null;
+    }
+  };
+
+  const analyzeSpeechPatterns = (text) => {
+    // Analyze speech patterns, word choice, confidence indicators
+    const words = text.toLowerCase().split(/\s+/);
+    const wordCount = words.length;
+    const avgWordLength = words.reduce((sum, word) => sum + word.length, 0) / wordCount;
+    
+    // Confidence indicators
+    const confidenceWords = ['definitely', 'absolutely', 'certainly', 'confident', 'sure', 'experienced'];
+    const hesitationWords = ['um', 'uh', 'well', 'maybe', 'perhaps', 'i think', 'i guess'];
+    const fillerWords = ['like', 'you know', 'basically', 'actually', 'literally'];
+    
+    const confidenceCount = words.filter(word => confidenceWords.includes(word)).length;
+    const hesitationCount = words.filter(word => hesitationWords.includes(word)).length;
+    const fillerCount = words.filter(word => fillerWords.includes(word)).length;
+    
+    // Professional vocabulary
+    const professionalWords = ['accomplish', 'achieve', 'collaborate', 'innovative', 'strategic', 'leadership'];
+    const professionalCount = words.filter(word => professionalWords.includes(word)).length;
+    
+    const analysis = {
+      wordCount,
+      avgWordLength,
+      confidenceScore: Math.max(0, Math.min(100, (confidenceCount * 20) - (hesitationCount * 10) - (fillerCount * 5) + 50)),
+      professionalismScore: Math.min(100, (professionalCount * 15) + (avgWordLength * 10) + 40),
+      clarityScore: Math.max(0, Math.min(100, 100 - (hesitationCount * 8) - (fillerCount * 6))),
+      hesitationCount,
+      fillerCount,
+      confidenceWords: confidenceCount,
+      professionalWords: professionalCount
+    };
+    
+    setSpeechAnalysis(analysis);
+    return analysis;
+  };
+
+  const generateVideoFeedback = async (userInput, speechAnalysis, videoAnalysis) => {
+    try {
+      const response = await fetch("http://localhost:4000/api/mockinterview/video/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: userInput,
+          speechAnalysis: speechAnalysis,
+          videoAnalysis: videoAnalysisResults.slice(-3), // Last 3 analysis results
+          facialExpressions: facialExpressionData,
+          bodyLanguageScore: bodyLanguageScore,
+          confidenceLevel: confidenceLevel,
+          eyeContactScore: eyeContactScore,
+          conversationHistory: conversationHistory,
+          mode: "video"
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.reply;
+    } catch (error) {
+      console.error("Video feedback generation error:", error);
+      return "I'm analyzing your presentation. Your body language and communication style are being evaluated for professional feedback.";
+    }
+  };
+
+  // Handle video stream from webcam
+  const handleVideoStream = async (videoElement, imageData) => {
+    setCurrentVideoStream(videoElement);
+    
+    if (imageData && isVideoAnalyzing) {
+      await analyzeVideoFrame(imageData);
+    }
+  };
+
+  // Initialize Speech Recognition and Synthesis
+  useEffect(() => {
+    // Initialize Speech Recognition
+    if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = "en-US";
+
+      recognitionRef.current.onresult = (event) => {
+        let finalTranscript = "";
+        let interimTranscript = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+            startSilenceTimer();
+          } else {
+            interimTranscript += transcript;
+            clearSilenceTimer();
+          }
+        }
+
+        setTranscript(finalTranscript + interimTranscript);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+        setIsRecording(false);
+        clearSilenceTimer();
+      };
+
+      recognitionRef.current.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        setIsListening(false);
+        setIsRecording(false);
+        clearSilenceTimer();
+      };
+    }
+
+    // Initialize Speech Synthesis
+    if ("speechSynthesis" in window) {
+      synthesisRef.current = window.speechSynthesis;
+      
+      const loadVoices = () => {
+        const voices = synthesisRef.current.getVoices();
+        console.log("Available voices:", voices);
+      };
+      
+      synthesisRef.current.onvoiceschanged = loadVoices;
+      loadVoices();
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if (synthesisRef.current) {
+        synthesisRef.current.cancel();
+      }
+      clearSilenceTimer();
+    };
+  }, []);
+
+  const selectInterviewType = (type) => {
+    setSelectedInterview(type);
+    // Initialize conversation with AI greeting
+    if (type === "voice" || type === "video") {
+      setTimeout(() => {
+        const welcomeMessage = type === "video" 
+          ? "Hello! Welcome to your AI video interview. I'll be analyzing your communication skills, body language, and professional presence. Please introduce yourself and tell me about your background."
+          : "Hello! Welcome to your AI mock interview. I'm your career coach. Please introduce yourself and tell me about your background.";
+        
+        setMessages([{ type: "ai", text: welcomeMessage }]);
+        setConversationHistory([{ role: "assistant", content: welcomeMessage }]);
+        speakText(welcomeMessage);
+        
+        if (type === "video") {
+          setIsVideoAnalyzing(true);
+        }
+      }, 1000);
+    }
+  };
+
+  const resetInterview = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    if (synthesisRef.current) {
+      synthesisRef.current.cancel();
+    }
+    clearSilenceTimer();
+
+    setSelectedInterview(null);
+    setMessages([]);
+    setInputText("");
+    setIsRecording(false);
+    setTranscript("");
+    setIsListening(false);
+    setIsSpeaking(false);
+    setSilenceDetected(false);
+    setConversationHistory([]);
+    
+    // Reset video analysis states
+    setIsVideoAnalyzing(false);
+    setVideoAnalysisResults([]);
+    setCurrentVideoStream(null);
+    setFacialExpressionData({});
+    setBodyLanguageScore(0);
+    setConfidenceLevel(0);
+    setEyeContactScore(0);
+    setSpeechAnalysis({});
+  };
+
+  // Enhanced Gemini AI API integration for text
+  const generateAIResponse = async (userInput) => {
+    try {
+      const response = await fetch("http://localhost:4000/api/mockinterview/ai/response", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: userInput,
+          mode: "text",
+          conversationHistory: conversationHistory,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.reply;
+    } catch (error) {
+      console.error("AI Response Error:", error);
+      return "I apologize, but I'm experiencing technical difficulties. Could you please try again?";
+    }
+  };
+
+  // Enhanced Gemini AI API integration for voice
+  const generateAIResponseForVoice = async (userInput) => {
+    try {
+      const speechAnalysisData = analyzeSpeechPatterns(userInput);
+      
+      const response = await fetch("http://localhost:4000/api/mockinterview/ai/response", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: userInput,
+          mode: "voice",
+          conversationHistory: conversationHistory,
+          speechAnalysis: speechAnalysisData
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.reply;
+    } catch (error) {
+      console.error("Voice AI Response Error:", error);
+      return "I'm sorry, I'm having trouble processing that. Could you please repeat your response?";
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!inputText.trim()) return;
+
+    const newMessages = [...messages, { type: "user", text: inputText }];
+    setMessages(newMessages);
+    
+    const updatedHistory = [...conversationHistory, { role: "user", content: inputText }];
+    setConversationHistory(updatedHistory);
+    
+    setInputText("");
+    setIsTyping(true);
+
+    try {
+      const aiResponse = await generateAIResponse(inputText);
+      if (aiResponse) {
+        const finalMessages = [...newMessages, { type: "ai", text: aiResponse }];
+        setMessages(finalMessages);
+        
+        setConversationHistory([...updatedHistory, { role: "assistant", content: aiResponse }]);
+      }
+    } catch (error) {
+      console.error("Error getting AI response:", error);
+      setMessages([
+        ...newMessages,
+        {
+          type: "ai",
+          text: "I apologize, but I'm having technical difficulties. Could you please try again?",
+        },
+      ]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  // Enhanced Voice Recording with proper error handling
+  const handleVoiceRecord = () => {
+    if (!recognitionRef.current) {
+      alert("Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.");
+      return;
+    }
+
+    if (isRecording) {
+      recognitionRef.current.stop();
+      setIsRecording(false);
+      setIsListening(false);
+      clearSilenceTimer();
+
+      if (transcript.trim()) {
+        if (selectedInterview === "video") {
+          processVideoVoiceInput(transcript);
+        } else {
+          processVoiceInput(transcript);
+        }
+        setTranscript("");
+      }
+    } else {
+      setIsRecording(true);
+      setIsListening(true);
+      setTranscript("");
+      setSilenceDetected(false);
+      
+      try {
+        recognitionRef.current.start();
+        startSilenceTimer();
+      } catch (error) {
+        console.error("Error starting speech recognition:", error);
+        setIsRecording(false);
+        setIsListening(false);
+      }
+    }
+  };
+
+  // Enhanced voice input processing
+  const processVoiceInput = async (voiceText) => {
+    if (!voiceText.trim()) return;
+
+    const newMessages = [...messages, { type: "user", text: voiceText }];
+    setMessages(newMessages);
+    
+    const updatedHistory = [...conversationHistory, { role: "user", content: voiceText }];
+    setConversationHistory(updatedHistory);
+    
+    setIsTyping(true);
+    clearSilenceTimer();
+
+    try {
+      const aiResponse = await generateAIResponseForVoice(voiceText);
+      if (aiResponse) {
+        const finalMessages = [...newMessages, { type: "ai", text: aiResponse }];
+        setMessages(finalMessages);
+        
+        setConversationHistory([...updatedHistory, { role: "assistant", content: aiResponse }]);
+        
+        setIsTyping(false);
+
+        setTimeout(() => {
+          speakText(aiResponse);
+        }, 500);
+      }
+    } catch (error) {
+      console.error("Error processing voice input:", error);
+      const errorMessage = "I'm sorry, I'm having trouble processing that. Could you please repeat?";
+      setMessages([...newMessages, { type: "ai", text: errorMessage }]);
+      setIsTyping(false);
+      speakText(errorMessage);
+    }
+  };
+
+  // Video voice input processing with comprehensive analysis
+  const processVideoVoiceInput = async (voiceText) => {
+    if (!voiceText.trim()) return;
+
+    const newMessages = [...messages, { type: "user", text: voiceText }];
+    setMessages(newMessages);
+    
+    const updatedHistory = [...conversationHistory, { role: "user", content: voiceText }];
+    setConversationHistory(updatedHistory);
+    
+    setIsTyping(true);
+    clearSilenceTimer();
+
+    try {
+      // Analyze speech patterns
+      const speechAnalysisData = analyzeSpeechPatterns(voiceText);
+      
+      // Generate AI response with video analysis
+      const aiResponse = await generateVideoFeedback(voiceText, speechAnalysisData, videoAnalysisResults.slice(-3));
+      
+      if (aiResponse) {
+        const finalMessages = [...newMessages, { type: "ai", text: aiResponse }];
+        setMessages(finalMessages);
+        
+        setConversationHistory([...updatedHistory, { role: "assistant", content: aiResponse }]);
+        
+        setIsTyping(false);
+
+        setTimeout(() => {
+          speakText(aiResponse);
+        }, 500);
+      }
+    } catch (error) {
+      console.error("Error processing video voice input:", error);
+      const errorMessage = "I'm analyzing your presentation. Please continue with your response.";
+      setMessages([...newMessages, { type: "ai", text: errorMessage }]);
+      setIsTyping(false);
+      speakText(errorMessage);
+    }
+  };
+
+  // Enhanced Text-to-Speech function
+  const speakText = (text) => {
+    if (!synthesisRef.current) {
+      console.warn("Speech synthesis not supported");
+      return;
+    }
+
+    synthesisRef.current.cancel();
+
+    const cleanText = text.replace(/[*#_`]/g, '').trim();
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = 0.85;
+    utterance.pitch = 1;
+    utterance.volume = 0.9;
+
+    const voices = synthesisRef.current.getVoices();
+    const preferredVoices = voices.filter(voice => 
+      voice.lang.includes("en") && 
+      (voice.name.includes("Google") || 
+       voice.name.includes("Microsoft") || 
+       voice.name.includes("Samantha") ||
+       voice.name.includes("Karen") ||
+       voice.name.includes("Daniel"))
+    );
+
+    const selectedVoice = preferredVoices[0] || 
+                         voices.find(voice => voice.lang.includes("en")) || 
+                         voices[0];
+
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+    }
+
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+    };
+
+    utterance.onend = () => {
+      setIsSpeaking(false);
+    };
+
+    utterance.onerror = (error) => {
+      console.error("Speech synthesis error:", error);
+      setIsSpeaking(false);
+    };
+
+    try {
+      synthesisRef.current.speak(utterance);
+    } catch (error) {
+      console.error("Error in speech synthesis:", error);
+      setIsSpeaking(false);
+    }
+  };
+
+  // Interview Selection Screen
+  if (!selectedInterview) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-black flex items-center justify-center p-6">
+        <div className="max-w-6xl w-full">
+          <div className="text-center mb-12">
+            <h1 className="text-6xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-4">
+              AI Mock Interview
+            </h1>
+            <p className="text-xl text-gray-300 font-light max-w-2xl mx-auto">
+              Practice your interview skills with our AI-powered career coach featuring advanced video analysis
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
+            <div
+              onClick={() => selectInterviewType("text")}
+              className="group cursor-pointer bg-gray-800 rounded-2xl p-6 border border-gray-700 hover:border-blue-500 transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
+            >
+              <div className="text-center">
+                <div className="text-5xl mb-4">💼</div>
+                <h3 className="text-xl font-bold text-white mb-3">Text Interview</h3>
+                <p className="text-gray-400 mb-6 text-sm">
+                  Type-based conversation with AI Career Coach. Perfect for detailed responses.
+                </p>
+                <div className="inline-flex items-center text-blue-400 font-medium">
+                  Start Conversation <span className="ml-2">→</span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              onClick={() => selectInterviewType("voice")}
+              className="group cursor-pointer bg-gray-800 rounded-2xl p-6 border border-gray-700 hover:border-green-500 transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
+            >
+              <div className="text-center">
+                <div className="text-5xl mb-4">🎤</div>
+                <h3 className="text-xl font-bold text-white mb-3">Voice Interview</h3>
+                <p className="text-gray-400 mb-6 text-sm">
+                  Natural speech conversation with AI. Voice-to-text conversion with AI responses via speaker.
+                </p>
+                <div className="inline-flex items-center text-green-400 font-medium">
+                  Start Speaking <span className="ml-2">→</span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              onClick={() => selectInterviewType("video")}
+              className="group cursor-pointer bg-gray-800 rounded-2xl p-6 border border-gray-700 hover:border-cyan-500 transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
+            >
+              <div className="text-center">
+                <div className="text-5xl mb-4">🎥</div>
+                <h3 className="text-xl font-bold text-white mb-3">AI Video Interview</h3>
+                <p className="text-gray-400 mb-6 text-sm">
+                  Advanced AI analysis of body language, facial expressions, speech patterns, and professional presence.
+                </p>
+                <div className="inline-flex items-center text-cyan-400 font-medium">
+                  Start AI Analysis <span className="ml-2">→</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Text Interview View
+  if (selectedInterview === "text") {
+    return (
+      <div className="h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-black text-white flex flex-col">
+        <div className="bg-gray-800 shadow-xl border-b border-gray-700 p-4">
+          <div className="flex items-center justify-between max-w-6xl mx-auto">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                <span className="text-xl">💼</span>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">Text Interview</h2>
+                <p className="text-gray-400 text-sm">AI-Powered Career Coach</p>
+              </div>
+            </div>
+            <button
+              onClick={resetInterview}
+              className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+            >
+              ← Back
+            </button>
+          </div>
+        </div>
+
+        <div
+          ref={messagesEndRef}
+          className="flex-1 overflow-y-auto p-4 max-w-4xl mx-auto w-full"
+          style={{ scrollBehavior: "smooth" }}
+        >
+          <div className="space-y-4">
+            {messages.length === 0 ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center p-8 rounded-xl bg-gray-800 border border-gray-700">
+                  <div className="text-4xl mb-4">🚀</div>
+                  <h3 className="text-xl font-bold text-white mb-2">
+                    Welcome to Your Interview Session
+                  </h3>
+                  <p className="text-gray-400">
+                    Start the conversation by introducing yourself
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {messages.map((message, index) => (
+                  <div
+                    key={index}
+                    className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-xl px-4 py-3 rounded-lg ${
+                        message.type === "user"
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-800 text-gray-100 border border-gray-700"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs">{message.type === "user" ? "👤" : "🎯"}</span>
+                        <p className="text-xs font-semibold opacity-70">
+                          {message.type === "user" ? "You" : "Career Coach"}
+                        </p>
+                      </div>
+                      <p>{message.text}</p>
+                    </div>
+                  </div>
+                ))}
+
+                {isTyping && (
+                  <div className="flex justify-start">
+                    <div className="bg-gray-800 border border-gray-700 px-4 py-3 rounded-lg">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs">🎯</span>
+                        <p className="text-xs font-semibold opacity-70">Career Coach</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+                        <div
+                          className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                          style={{ animationDelay: "0.1s" }}
+                        ></div>
+                        <div
+                          className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                          style={{ animationDelay: "0.2s" }}
+                        ></div>
+                        <span className="ml-2 text-blue-400 text-sm">Analyzing your response...</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-gray-800 border-t border-gray-700 p-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex space-x-3">
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && !isTyping && handleSendMessage()}
+                placeholder="Share your thoughts or ask a question..."
+                className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                disabled={isTyping}
+              />
+              <button
+                onClick={handleSendMessage}
+                disabled={!inputText.trim() || isTyping}
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-6 py-3 rounded-lg transition-colors duration-200 flex items-center gap-2"
+              >
+                <span>📤</span>
+                {isTyping ? "..." : "Send"}
+              </button>
+            </div>
+            <p className="text-center text-gray-500 text-xs mt-2">
+              Press Enter to send • AI-Powered Career Assessment
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Voice Interview View with Enhanced Features
+  if (selectedInterview === "voice") {
+    return (
+      <div className="h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-black text-white flex flex-col overflow-hidden">
+        <div className="bg-gray-800 shadow-xl border-b border-gray-700 p-4 flex-shrink-0">
+          <div className="flex items-center justify-between max-w-7xl mx-auto">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center mr-3">
+                <span className="text-xl">🎤</span>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">Voice Interview</h2>
+                <p className="text-gray-400 text-sm">
+                  {isSpeaking
+                    ? "🔊 AI Coach Speaking..."
+                    : isRecording
+                    ? "🎙 Listening... (Auto-reply in 3s of silence)"
+                    : "Ready for Voice Conversation"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {isSpeaking && (
+                <div className="flex items-center gap-2 bg-blue-600/20 px-3 py-1 rounded-full">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                  <span className="text-blue-300 text-sm">AI Speaking</span>
+                </div>
+              )}
+              {isRecording && (
+                <div className="flex items-center gap-2 bg-orange-600/20 px-3 py-1 rounded-full">
+                  <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                  <span className="text-orange-300 text-sm">Recording</span>
+                </div>
+              )}
+              <button
+                onClick={resetInterview}
+                className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+              >
+                ← Back
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 flex p-4 gap-4 max-w-7xl mx-auto w-full min-h-0 overflow-hidden">
+          {/* Voice Controls Section */}
+          <div
+            className="bg-gray-800 rounded-xl shadow-xl border border-gray-700 p-6 overflow-hidden flex flex-col"
+            style={{
+              width: "450px",
+              minWidth: "450px",
+              maxWidth: "450px",
+              height: "calc(100vh - 200px)",
+            }}
+          >
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <div
+                className={`w-56 h-56 rounded-full flex items-center justify-center shadow-xl transition-all duration-500 border-4 cursor-pointer mb-6 ${
+                  isRecording || isListening
+                    ? "bg-red-500 animate-pulse border-red-400 scale-110"
+                    : "bg-green-600 hover:bg-green-700 border-green-500"
+                }`}
+                onClick={handleVoiceRecord}
+              >
+                <span className="text-8xl text-white">
+                  {isRecording ? "🔴" : "🎤"}
+                </span>
+              </div>
+
+              <h3 className="text-2xl font-bold text-center mb-3">
+                {isRecording ? "🎙 Listening..." : "Ready for Your Response"}
+              </h3>
+
+              <p className="text-gray-400 text-center mb-6 text-sm">
+                {isRecording
+                  ? "Speak naturally. Auto-reply after 3 seconds of silence."
+                  : isSpeaking
+                  ? "AI is speaking. Please wait..."
+                  : "Click the microphone to start speaking."}
+              </p>
+
+              <button
+                onClick={handleVoiceRecord}
+                disabled={isSpeaking || isTyping}
+                className={`px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 mb-6 ${
+                  isRecording
+                    ? "bg-red-600 hover:bg-red-700"
+                    : isSpeaking || isTyping
+                    ? "bg-gray-600 cursor-not-allowed"
+                    : "bg-green-600 hover:bg-green-700"
+                } text-white shadow-lg`}
+              >
+                <span className="mr-2 text-xl">
+                  {isRecording ? "⏹" : isSpeaking || isTyping ? "🔊" : "🎙"}
+                </span>
+                {isRecording
+                  ? "Stop Recording"
+                  : isSpeaking || isTyping
+                  ? "Processing..."
+                  : "Start Speaking"}
+              </button>
+            </div>
+
+            {/* Live Transcript */}
+            <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600/50 flex-shrink-0">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm">📝</span>
+                <h4 className="text-sm font-semibold text-gray-300">Live Transcript</h4>
+                {isListening && (
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                )}
+              </div>
+              <div className="bg-gray-800/50 rounded p-3 max-h-[120px] overflow-y-auto">
+                <p className="text-gray-100 text-sm">
+                  {transcript || "Your speech will appear here as you speak..."}
+                </p>
+              </div>
+            </div>
+
+            {/* Browser Support Notice */}
+            {!recognitionRef.current && (
+              <div className="mt-4 p-3 bg-yellow-900/20 border border-yellow-600/30 rounded-lg flex-shrink-0">
+                <p className="text-yellow-300 text-xs text-center">
+                  ⚠ Voice recognition requires Chrome, Edge, or Safari
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Conversation Section */}
+          <div
+            className="flex-1 bg-gray-800 rounded-xl shadow-xl border border-gray-700 flex flex-col min-h-0"
+            style={{ height: "calc(100vh - 200px)" }}
+          >
+            <div className="p-4 bg-gray-700/50 border-b border-gray-600/50 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                  <span className="text-sm">💬</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Interview Chat</h3>
+                  <p className="text-xs text-gray-400">AI-Powered Video Analysis</p>
+                </div>
+              </div>
+            </div>
+
+            <div
+              ref={voiceMessagesEndRef}
+              className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0"
+              style={{ scrollBehavior: "smooth" }}
+            >
+              {messages.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <div className="text-3xl mb-2">🎥🤖</div>
+                    <h4 className="text-sm font-bold text-white mb-1">AI Video Interview</h4>
+                    <p className="text-gray-400 text-xs">Comprehensive analysis in progress</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {messages.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[90%] px-3 py-2 rounded-lg ${
+                          message.type === "user"
+                            ? "bg-cyan-600 text-white"
+                            : "bg-gray-700 text-gray-100 border border-gray-600"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1 mb-1">
+                          <span className="text-xs">{message.type === "user" ? "🎤" : "🤖"}</span>
+                          <p className="text-xs font-semibold opacity-80">
+                            {message.type === "user" ? "You" : "AI Coach"}
+                          </p>
+                        </div>
+                        <p className="text-xs leading-relaxed">{message.text}</p>
+                      </div>
+                    </div>
+                  ))}
+
+                  {(isTyping || isSpeaking) && (
+                    <div className="flex justify-start">
+                      <div className="bg-gray-700 border border-gray-600 px-3 py-2 rounded-lg">
+                        <div className="flex items-center gap-1 mb-1">
+                          <span className="text-xs">🤖</span>
+                          <p className="text-xs font-semibold opacity-80">AI Coach</p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"></div>
+                          <div
+                            className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"
+                            style={{ animationDelay: "0.1s" }}
+                          ></div>
+                          <div
+                            className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"
+                            style={{ animationDelay: "0.2s" }}
+                          ></div>
+                          <span className="ml-2 text-cyan-400 text-xs">
+                            {isSpeaking ? "Speaking..." : "Analyzing..."}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="p-3 bg-gray-700/30 border-t border-gray-600/30 flex-shrink-0">
+              <div className="flex items-center justify-between text-xs text-gray-400">
+                <span>Messages: {messages.length}</span>
+                <span className="flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse"></div>
+                  <span>AI Analysis Active</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Enhanced Status Bar */}
+        <div className="bg-gray-800/50 border-t border-gray-700/50 p-4 flex-shrink-0">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 text-xs text-gray-400">
+                <span className="flex items-center gap-1">
+                  🎥 Video Analysis
+                </span>
+                <span className="flex items-center gap-1">
+                  🧠 Facial Recognition
+                </span>
+                <span className="flex items-center gap-1">
+                  📊 Body Language Detection
+                </span>
+                <span className="flex items-center gap-1">
+                  🗣 Speech Pattern Analysis
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsVideoAnalyzing(!isVideoAnalyzing)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors duration-200 ${
+                    isVideoAnalyzing
+                      ? "bg-cyan-600 text-white"
+                      : "bg-gray-600 text-gray-300 hover:bg-gray-500"
+                  }`}
+                >
+                  {isVideoAnalyzing ? "🟢 Analysis ON" : "⚪ Analysis OFF"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+export default MockInterview;
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-sm">💼</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Interview Conversation</h3>
+                  <p className="text-xs text-gray-400">Voice ↔️ Text ↔️ AI Coach</p>
+                </div>
+              </div>
+            </div>
+
+            <div
+              ref={voiceMessagesEndRef}
+              className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0"
+              style={{ scrollBehavior: "smooth" }}
+            >
+              {messages.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <div className="text-4xl mb-3">🎙💼</div>
+                    <h4 className="text-lg font-bold text-white mb-2">Voice Interview Session</h4>
+                    <p className="text-gray-400 text-sm">Your conversation will appear here</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {messages.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[80%] px-4 py-3 rounded-xl ${
+                          message.type === "user"
+                            ? "bg-green-600 text-white"
+                            : "bg-gray-700 text-gray-100 border border-gray-600"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs">{message.type === "user" ? "🎤" : "🎯"}</span>
+                          <p className="text-xs font-semibold opacity-80">
+                            {message.type === "user" ? "You (Voice)" : "AI Career Coach"}
+                          </p>
+                        </div>
+                        <p className="text-sm leading-relaxed">{message.text}</p>
+                      </div>
+                    </div>
+                  ))}
+
+                  {(isTyping || isSpeaking) && (
+                    <div className="flex justify-start">
+                      <div className="bg-gray-700 border border-gray-600 px-4 py-3 rounded-xl">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs">🎯</span>
+                          <p className="text-xs font-semibold opacity-80">AI Career Coach</p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+                          <div
+                            className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                            style={{ animationDelay: "0.1s" }}
+                          ></div>
+                          <div
+                            className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                            style={{ animationDelay: "0.2s" }}
+                          ></div>
+                          <span className="ml-2 text-blue-400 text-sm">
+                            {isSpeaking ? "Speaking response..." : "Analyzing your response..."}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="p-3 bg-gray-700/30 border-t border-gray-600/30 flex-shrink-0">
+              <div className="flex items-center justify-between text-xs text-gray-400">
+                <span>Messages: {messages.length}</span>
+                <span className="flex items-center gap-1">
+                  {(isRecording || isListening) && (
+                    <>
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      <span>Recording</span>
+                    </>
+                  )}
+                  {isSpeaking && (
+                    <>
+                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                      <span>AI Speaking</span>
+                    </>
+                  )}
+                  {!isRecording && !isSpeaking && !isTyping && <span>Ready</span>}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gray-800/50 border-t border-gray-700/50 p-4 flex-shrink-0">
+          <div className="max-w-7xl mx-auto">
+            <p className="text-center text-gray-500 text-xs">
+              🎙 Voice Recognition • 🤖 Gemini AI • 🔊 Text-to-Speech • 3-Second Auto-Reply
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Enhanced Video Interview View with AI Analysis
+  if (selectedInterview === "video") {
+    return (
+      <div className="h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-black text-white flex flex-col overflow-hidden">
+        <div className="bg-gray-800 shadow-xl border-b border-gray-700 p-4 flex-shrink-0">
+          <div className="flex items-center justify-between max-w-7xl mx-auto">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-cyan-600 rounded-lg flex items-center justify-center mr-3">
+                <span className="text-xl">🎥</span>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">AI Video Interview</h2>
+                <p className="text-gray-400 text-sm">
+                  {isVideoAnalyzing ? "🧠 AI Analyzing Video..." : "Advanced Professional Assessment"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {isVideoAnalyzing && (
+                <div className="flex items-center gap-2 bg-cyan-600/20 px-3 py-1 rounded-full">
+                  <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                  <span className="text-cyan-300 text-sm">AI Active</span>
+                </div>
+              )}
+              {isSpeaking && (
+                <div className="flex items-center gap-2 bg-blue-600/20 px-3 py-1 rounded-full">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                  <span className="text-blue-300 text-sm">AI Speaking</span>
+                </div>
+              )}
+              {isRecording && (
+                <div className="flex items-center gap-2 bg-orange-600/20 px-3 py-1 rounded-full">
+                  <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                  <span className="text-orange-300 text-sm">Recording</span>
+                </div>
+              )}
+              <button
+                onClick={resetInterview}
+                className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+              >
+                ← Back
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 flex gap-4 p-4 max-w-7xl mx-auto w-full min-h-0 overflow-hidden">
+          {/* Video Analysis Panel */}
+          <div
+            className="bg-gray-800 rounded-xl shadow-xl border border-gray-700 flex flex-col min-h-0"
+            style={{ width: "400px", minWidth: "400px", maxWidth: "400px" }}
+          >
+            <div className="p-4 bg-gray-700/50 border-b border-gray-600/50 flex-shrink-0">
+              <h3 className="text-lg font-bold text-white mb-1">AI Analysis Dashboard</h3>
+              <p className="text-xs text-gray-400">Real-time behavioral assessment</p>
+            </div>
+            
+            <div className="flex-1 p-4 overflow-y-auto space-y-4">
+              {/* Real-time Metrics */}
+              <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600/30">
+                <h4 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+                  📊 Performance Metrics
+                </h4>
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-gray-400">Body Language</span>
+                      <span className="text-cyan-400">{bodyLanguageScore}%</span>
+                    </div>
+                    <div className="w-full bg-gray-600 rounded-full h-2">
+                      <div 
+                        className="bg-gradient-to-r from-cyan-600 to-cyan-400 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${bodyLanguageScore}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-gray-400">Confidence Level</span>
+                      <span className="text-green-400">{confidenceLevel}%</span>
+                    </div>
+                    <div className="w-full bg-gray-600 rounded-full h-2">
+                      <div 
+                        className="bg-gradient-to-r from-green-600 to-green-400 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${confidenceLevel}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-gray-400">Eye Contact</span>
+                      <span className="text-blue-400">{eyeContactScore}%</span>
+                    </div>
+                    <div className="w-full bg-gray-600 rounded-full h-2">
+                      <div 
+                        className="bg-gradient-to-r from-blue-600 to-blue-400 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${eyeContactScore}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Facial Expression Analysis */}
+              {Object.keys(facialExpressionData).length > 0 && (
+                <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600/30">
+                  <h4 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+                    😊 Facial Expressions
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {Object.entries(facialExpressionData).map(([emotion, value]) => (
+                      <div key={emotion} className="flex justify-between">
+                        <span className="text-gray-400 capitalize">{emotion}:</span>
+                        <span className="text-yellow-400">{(value * 100).toFixed(1)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Speech Analysis */}
+              {Object.keys(speechAnalysis).length > 0 && (
+                <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600/30">
+                  <h4 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+                    🗣 Speech Analysis
+                  </h4>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Confidence:</span>
+                      <span className="text-green-400">{speechAnalysis.confidenceScore?.toFixed(1)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Professionalism:</span>
+                      <span className="text-purple-400">{speechAnalysis.professionalismScore?.toFixed(1)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Clarity:</span>
+                      <span className="text-blue-400">{speechAnalysis.clarityScore?.toFixed(1)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Word Count:</span>
+                      <span className="text-gray-300">{speechAnalysis.wordCount}</span>
+                    </div>
+                    {speechAnalysis.hesitationCount > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Hesitations:</span>
+                        <span className="text-orange-400">{speechAnalysis.hesitationCount}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Voice Controls */}
+              <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600/30">
+                <h4 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+                  🎤 Voice Controls
+                </h4>
+                <div className="space-y-3">
+                  <button
+                    onClick={handleVoiceRecord}
+                    disabled={isSpeaking || isTyping}
+                    className={`w-full px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                      isRecording
+                        ? "bg-red-600 hover:bg-red-700"
+                        : isSpeaking || isTyping
+                        ? "bg-gray-600 cursor-not-allowed"
+                        : "bg-green-600 hover:bg-green-700"
+                    } text-white`}
+                  >
+                    <span className="mr-2">
+                      {isRecording ? "⏹" : isSpeaking || isTyping ? "🔊" : "🎙"}
+                    </span>
+                    {isRecording
+                      ? "Stop Recording"
+                      : isSpeaking || isTyping
+                      ? "Processing..."
+                      : "Start Speaking"}
+                  </button>
+
+                  {/* Live Transcript */}
+                  <div className="bg-gray-800/50 rounded p-3 max-h-[100px] overflow-y-auto">
+                    <p className="text-gray-100 text-xs">
+                      {transcript || "Your speech will appear here..."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Video Feed */}
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 grid grid-rows-2 gap-4">
+              {/* AI Coach */}
+              <div className="bg-gray-800 rounded-xl shadow-xl flex items-center justify-center relative overflow-hidden border border-gray-700">
+                <div className="text-center">
+                  <div className="w-20 h-20 bg-cyan-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <span className="text-3xl">🎯</span>
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-2">AI Career Coach</h3>
+                  <p className="text-gray-400">Professional • Experienced • Insightful</p>
+                  <div className="flex items-center justify-center gap-2 mt-4 bg-cyan-600/20 px-3 py-1 rounded-full">
+                    <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                    <span className="text-cyan-300 text-sm">
+                      {isVideoAnalyzing ? "Analyzing Interview" : "Ready to Interview"}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* AI Status Overlay */}
+                <div className="absolute top-4 left-4">
+                  <div className="flex items-center gap-2 bg-gray-800/80 px-2 py-1 rounded-full">
+                    <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                    <span className="text-cyan-300 text-xs">AI Coach Active</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* User Camera */}
+              <div className="bg-gray-800 rounded-xl shadow-xl relative overflow-hidden border border-gray-700">
+                <div className="absolute top-4 left-4 z-10">
+                  <h3 className="text-lg font-bold text-white">Your Camera</h3>
+                  <p className="text-sm text-gray-300">Click to toggle</p>
+                </div>
+                <div className="absolute top-4 right-4 z-10">
+                  <div className="flex items-center gap-2 bg-gray-800/80 px-2 py-1 rounded-full">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-green-300 text-xs">Recording</span>
+                  </div>
+                </div>
+                <div className="absolute inset-0">
+                  <SimpleWebcamToggle 
+                    width="100%" 
+                    height="100%" 
+                    onVideoStream={handleVideoStream}
+                    isAnalyzing={isVideoAnalyzing}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Conversation Panel */}
+          <div
+            className="bg-gray-800 rounded-xl shadow-xl border border-gray-700 flex flex-col min-h-0"
+            style={{ width: "350px", minWidth: "350px", maxWidth: "350px" }}
+          >
+            <div className="p-4 bg-gray-700/50 border-b border-gray-600/50 flex-shrink-0">
