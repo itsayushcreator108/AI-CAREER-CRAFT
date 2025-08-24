@@ -1,0 +1,323 @@
+{
+    "posts": [
+      {
+        "id": 1,
+        "author": "Ayush Kumar",
+        "title": "Hello World",
+        "content": "This is my first dummy post."
+      },
+      {
+        "id": 2,
+        "author": "John Doe",
+        "title": "React Learning",
+        "content": "React is awesome!"
+      },
+      {
+        "id": 3,
+        "author": "Ayush kumar",
+        "title": "MY first PERN project",
+        "content": "Postgresql using neon, express, react and node js"
+      },
+      {
+        "id": 4,
+        "author": "Priya Sharma",
+        "title": "Next.js Exploration",
+        "content": "Learning Next.js with API routes is exciting."
+      },
+      {
+        "id": 5,
+        "author": "Ravi Verma",
+        "title": "MongoDB Basics",
+        "content": "Tried connecting my app with MongoDB Atlas."
+      },
+      {
+        "id": 6,
+        "author": "Neha Singh",
+        "title": "Responsive UI",
+        "content": "Working on a Tailwind CSS powered dashboard."
+      },
+      {
+        "id": 7,
+        "author": "Arjun Nair",
+        "title": "REST API",
+        "content": "Building REST APIs with Express is smooth."
+      },
+      {
+        "id": 8,
+        "author": "Meera Patel",
+        "title": "Material UI",
+        "content": "Exploring Material UI components for better UI."
+      },
+      {
+        "id": 9,
+        "author": "Karan Gupta",
+        "title": "JWT Authentication",
+        "content": "Added JWT based secure login in Node.js."
+      },
+      {
+        "id": 10,
+        "author": "Simran Kaur",
+        "title": "Chart.js in React",
+        "content": "Visualizing data using Chart.js library."
+      },
+      {
+        "id": 11,
+        "author": "Rahul Mehta",
+        "title": "SQL vs NoSQL",
+        "content": "Experimenting with PostgreSQL and MongoDB."
+      },
+      {
+        "id": 12,
+        "author": "Sneha Iyer",
+        "title": "File Uploads",
+        "content": "Handled file uploads using Multer."
+      },
+      {
+        "id": 13,
+        "author": "Ankit Tiwari",
+        "title": "Axios Requests",
+        "content": "Axios simplifies API calls in React projects."
+      },
+      {
+        "id": 14,
+        "author": "Ritika Bansal",
+        "title": "Clerk Auth",
+        "content": "Explored Clerk for authentication in Next.js apps."
+      },
+      {
+        "id": 15,
+        "author": "Mohit Chauhan",
+        "title": "TypeScript Start",
+        "content": "Migrating React codebase to TypeScript."
+      },
+      {
+        "id": 16,
+        "author": "Pooja Reddy",
+        "title": "SEO Improvements",
+        "content": "Learning Next.js SEO optimizations."
+      },
+      {
+        "id": 17,
+        "author": "Vikas Sharma",
+        "title": "Redux Toolkit",
+        "content": "Managing global state with Redux Toolkit."
+      },
+      {
+        "id": 18,
+        "author": "Divya Agarwal",
+        "title": "Styled Components",
+        "content": "Explored styled-components for React UI."
+      },
+      {
+        "id": 19,
+        "author": "Rohit Yadav",
+        "title": "GraphQL APIs",
+        "content": "Experimented with Apollo Client for GraphQL."
+      },
+      {
+        "id": 20,
+        "author": "Sanya Kapoor",
+        "title": "Dark Mode",
+        "content": "Built toggle for dark mode using Tailwind."
+      },
+      {
+        "id": 21,
+        "author": "Harshit Joshi",
+        "title": "Node Cluster",
+        "content": "Learning about scaling Node apps with clustering."
+      },
+      {
+        "id": 22,
+        "author": "Ananya Das",
+        "title": "React Hot Toast",
+        "content": "Pretty notifications with react-hot-toast."
+      },
+      {
+        "id": 23,
+        "author": "Nikhil Malhotra",
+        "title": "Form Validation",
+        "content": "React Hook Form makes validation easy."
+      },
+      {
+        "id": 24,
+        "author": "Shreya Sinha",
+        "title": "API Pagination",
+        "content": "Implemented pagination in job listing API."
+      },
+      {
+        "id": 25,
+        "author": "Gaurav Mishra",
+        "title": "Unit Testing",
+        "content": "Started writing Jest tests for Node controllers."
+      },
+      {
+        "id": 26,
+        "author": "Tanvi Kulkarni",
+        "title": "Firebase Auth",
+        "content": "Tested Firebase authentication service."
+      },
+      {
+        "id": 27,
+        "author": "Siddharth Jain",
+        "title": "Debouncing Search",
+        "content": "Optimized search with debounce in React."
+      },
+      {
+        "id": 28,
+        "author": "Muskaan Arora",
+        "title": "LocalStorage",
+        "content": "Persisting state with LocalStorage in React."
+      },
+      {
+        "id": 29,
+        "author": "Aditya Choudhary",
+        "title": "SSR vs CSR",
+        "content": "Comparing server-side and client-side rendering."
+      },
+      {
+        "id": 30,
+        "author": "Nisha Shetty",
+        "title": "Framer Motion",
+        "content": "Animations in React using Framer Motion."
+      },
+      {
+        "id": 31,
+        "author": "Kunal Roy",
+        "title": "GitHub Actions",
+        "content": "Automating CI/CD with GitHub Actions."
+      },
+      {
+        "id": 32,
+        "author": "Ishita Gupta",
+        "title": "Color Schemes",
+        "content": "Trying custom color themes with Tailwind."
+      },
+      {
+        "id": 33,
+        "author": "Rajesh Jha",
+        "title": "Mongoose Models",
+        "content": "Explored schemas and relations in Mongoose."
+      },
+      {
+        "id": 34,
+        "author": "Alisha Fernandes",
+        "title": "Push Notifications",
+        "content": "Web push notifications with service workers."
+      },
+      {
+        "id": 35,
+        "author": "Deepak Pillai",
+        "title": "JWT Refresh",
+        "content": "Added refresh tokens for secure auth handling."
+      },
+      {
+        "id": 36,
+        "author": "Jyoti Menon",
+        "title": "Accessibility UI",
+        "content": "Improved accessibility of forms and buttons."
+      },
+      {
+        "id": 37,
+        "author": "Saurabh Saxena",
+        "title": "PostgreSQL Joins",
+        "content": "Practicing SQL Joins for reporting features."
+      },
+      {
+        "id": 38,
+        "author": "Manisha Rani",
+        "title": "Error Handling",
+        "content": "Improved backend error middleware in Express."
+      },
+      {
+        "id": 39,
+        "author": "Arvind Menon",
+        "title": "Socket.IO Chat",
+        "content": "Built a simple chat app with Socket.IO."
+      },
+      {
+        "id": 40,
+        "author": "Komal Bhatt",
+        "title": "React Query",
+        "content": "Using React Query for API data fetching."
+      },
+      {
+        "id": 41,
+        "author": "Prateek Singh",
+        "title": "Virtualized List",
+        "content": "Implemented react-window for large lists."
+      },
+      {
+        "id": 42,
+        "author": "Aditi Ghosh",
+        "title": "Custom Hooks",
+        "content": "Created a custom useFetch hook."
+      },
+      {
+        "id": 43,
+        "author": "Suraj Kumar",
+        "title": "Bcrypt Hashing",
+        "content": "Secured passwords with Bcrypt in Express."
+      },
+      {
+        "id": 44,
+        "author": "Anjali Nair",
+        "title": "Lazy Loading",
+        "content": "Added React lazy and Suspense support."
+      },
+      {
+        "id": 45,
+        "author": "Vinay Patil",
+        "title": "Docker Images",
+        "content": "Containerized Node app using Docker."
+      },
+      {
+        "id": 46,
+        "author": "Rashmi Desai",
+        "title": "Google OAuth",
+        "content": "Added Google OAuth login in MERN app."
+      },
+      {
+        "id": 47,
+        "author": "Mayank Agarwal",
+        "title": "ENV Variables",
+        "content": "Used dotenv for environment configs."
+      },
+      {
+        "id": 48,
+        "author": "Swati Bhatnagar",
+        "title": "Sitemap Setup",
+        "content": "Created sitemap.xml for SEO."
+      },
+      {
+        "id": 49,
+        "author": "Chetan Reddy",
+        "title": "Redis Caching",
+        "content": "Implemented caching of API responses."
+      },
+      {
+        "id": 50,
+        "author": "Shalini Pandey",
+        "title": "User Dashboard",
+        "content": "Designed clean UI dashboard for users."
+      },
+      {
+        "id": 51,
+        "author": "Dhruv Kapoor",
+        "title": "Nodemailer",
+        "content": "Configured Nodemailer with Gmail SMTP."
+      },
+      {
+        "id": 52,
+        "author": "Radhika Joshi",
+        "title": "Image Optimization",
+        "content": "Next.js optimized images for faster loads."
+      },
+      {
+        "id": 53,
+        "author": "Abhishek Soni",
+        "title": "WebSockets Live",
+        "content": "Built live updates using WebSockets."
+      }
+    ]
+  }
+  
